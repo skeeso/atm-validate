@@ -1,8 +1,15 @@
 #! /bin/bash
 
-
 VERSION=20220607
-################################### HARDENING SCRIPT FOR UBUNTU 2004 ########################### 
+################################### HARDENING SCRIPT FOR UBUNTU 2004 ###########################
+
+# More visual representation
+UTFC="\xE2\x9C\x85"
+UTFY="\xF0\x9F\x94\xB4"
+function disp_stat(){ printf "\x1B[01;34m$UTFY\x1B[0m"; }
+function disp_good(){ printf "\x1B[01;32m$UTFC\x1B[0m"; }
+function disp_warn(){ printf "\033[01;41m[WARN]\033[0m"; }
+function disp_pass(){ printf "\033[01;42m[PASS]\033[0m"; }
 
 # Check for bash
 case ${BASH} in
@@ -17,7 +24,7 @@ esac
 (echo $@ | grep -qi "\-l") && echo -e "
 This script is released under https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.
 
-It utilizes CIS IP which is licensed in accordance with the 
+It utilizes CIS IP which is licensed in accordance with the
 Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International terms here:
 https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.\n" && exit
 
@@ -65,9 +72,9 @@ If you are logged in as root, make sure you can still log in after executing in 
 To disable individual benchmarks set variable W and S to 3.
 To exit before an individual benchmark, set variable W or S to 0. This is only for debugging purposes.
 
-Developed just for fun by Kenneth Karlsson. (kenneth.karlsson@workaholics.se)\n" && exit 
- 
-################################### SET VARIABLES ############################################### 
+Developed just for fun by Kenneth Karlsson. (kenneth.karlsson@workaholics.se)\n" && exit
+
+################################### SET VARIABLES ###############################################
 set -o nounset
 T=                                             # Type of system: S for Server or W for Workstation.
 declare -i L=1                                 # Level 1 or 2.
@@ -75,7 +82,7 @@ declare -i W=1                                 # Workstation level  (1 or 2).
 declare -i S=1                                 # Server level  (1 or 2).
 E=                                             # Variable to check exit status of warning messages.
 U=                                             # Harden system. U=Y will harden system. Default is blank.
-B=                                             # Display benchmark details. 
+B=                                             # Display benchmark details.
 Q=                                             # Run in quite mode without any user output or interaction.
 NO=                                            # Cisecurity benchmark number.
 BD=                                            # Show benchmark details.
@@ -93,7 +100,7 @@ TMP2=/tmp/cistmp2.$$                           # Temp file 2.
 > ${CISLOG}
 > ${CISWARNLOG}
 
-################################### SET .CISRC FILE DEFAULT VARIABLES ########################### 
+################################### SET .CISRC FILE DEFAULT VARIABLES ###########################
 apt list --installed 2> /dev/null | grep -q net-tools
 (($? != 0)) && echo "net-tools is not installed. Please install before running script as ifconfig is required." && exit 1
 
@@ -229,7 +236,7 @@ fi
 T=$(echo ${TL} | cut -c1)
 L=$(echo ${TL} | cut -c2)
 
-########################################### FUNCTIONS ########################################### 
+########################################### FUNCTIONS ###########################################
 
 # Check for update mode
 function upd() {
@@ -273,22 +280,22 @@ function ssd() {
 
 # Print log information on screen and add to log file
 function prn() {
-    qte || printf "%-12s %-s\n" "${NO}" "${1}"
-    printf "%-12s %-s\n" "${NO}" "${1}" >> ${CISLOG}
+    qte || printf "`echo "\n"`%-12s %-s\n" "`disp_good` `disp_pass`     ${NO}" "${1}"
+    printf "%-12s %-s\n" "[P] ${NO}" "${1}" >> ${CISLOG}
 }
 
 # Print warning information on screen and add to warning log file.
 function prw() {
     qte || tput bold
-    qte || printf "%-12s %-s\n" "${NO}" "${1}"
+    qte || printf "`echo "\n"`%-12s %-s\n" "`disp_stat` `disp_warn`     ${NO}" "${1}"
     qte || tput sgr0
-    printf "%-12s %-s\n" "${NO}" "${1}" >> ${CISLOG}
-    printf "%-12s %-s\n" "${NO}" "${1}" >> ${CISWARNLOG}
+    printf "%-12s %-s\n" "[W] ${NO}" "${1}" >> ${CISLOG}
+    printf "%-12s %-s\n" "[W] ${NO}" "${1}" >> ${CISWARNLOG}
     E=Y
 }
 
 # Checks profile level for each benchmark. Level value can be 1 or 2 and is set with parameter W and S.
-# Set variable W or S on benchmark to 3 to skip indivual benchmarks. 
+# Set variable W or S on benchmark to 3 to skip indivual benchmarks.
 # Set variable W or S on benchmark to 0 to exit from script.
 function lev() {
     [[ -e ${TMP1} ]] && rm ${TMP1}
@@ -323,11 +330,11 @@ function update_modprobe() {
 # Parameter 1 = (4=mindays,5=maxdays, 6=warndays,7=inactive)
 # Parameter 2 = value which is extracted from .cisrc file.
 function update_chage() {
-    local CHECK=  
-    local USR=  
-    local NAME=  
+    local CHECK=
+    local USR=
+    local NAME=
     grep -E ^[^:]+:[^\!*] /etc/shadow | cut -d: -f1 | while read USR
-    do 
+    do
         case ${1} in
             0)  CHECK=$(chage -l  ${USR} | grep ^Last | awk -F: {'print $2'})
                 CHECK=$(date -d "${CHECK}" +"%Y%m%d")
@@ -361,7 +368,7 @@ function check_systemctl() {
     fi
 }
 
-# Checks fstab for partition information. 
+# Checks fstab for partition information.
 # Parameter 1 = file system name
 function check_fstab() {
     grep -q -E "\s${1}\s" /etc/fstab
@@ -405,7 +412,7 @@ function delete_file() {
 # Parameter 4 = file permissions
 # Parameter 5 = Text to be added to first line if file is missing
 function update_file() {
-    local CHECK 
+    local CHECK
     if  [[ ! -s "${1}" ]]; then
         upd || prw "File ${1} is missing or empty. This file needs to be created."
         upd && prw "File ${1} is missing. Creating new file."
@@ -463,8 +470,8 @@ function install_package() {
                         systemctl start  ${1} 2> /dev/null ;;
                     *)  prn "Package ${1} is already installed but cant be started by systemctl." ;;
                 esac ;;
-            *)  upd || prw "Package ${1} is not installed. It needs to be installed." 
-                upd && prw "Package ${1} is not installed. Installing now." 
+            *)  upd || prw "Package ${1} is not installed. It needs to be installed."
+                upd && prw "Package ${1} is not installed. Installing now."
                 upd && apt -y install ${1}
                 upd && systemctl enable ${1} > /dev/null 2>&1
                 upd && systemctl start ${1} > /dev/null 2>&1 ;;
@@ -478,8 +485,8 @@ function disable_package() {
     case $? in
         0)  systemctl status ${1} > /dev/null 2>&1
             case $? in
-                0)  upd || prw "Package ${1} is installed and active. It needs to be disabled." 
-                    upd && prw "Package ${1} is installed and active. Disabling." 
+                0)  upd || prw "Package ${1} is installed and active. It needs to be disabled."
+                    upd && prw "Package ${1} is installed and active. Disabling."
                     upd && systemctl stop ${1} 2> /dev/null
                     upd && systemctl disable  ${1} 2> /dev/null ;;
                 3)  prn "Package ${1} is already disabled." ;;
@@ -494,8 +501,8 @@ function disable_package() {
 function remove_package() {
     apt list --installed 2> /dev/null | grep -q "^${1}\/"
     case $? in
-        0)  upd || prw "Package ${1} is installed and needs to be removed." 
-            upd && prw "Package ${1} is installed and will be removed." 
+        0)  upd || prw "Package ${1} is installed and needs to be removed."
+            upd && prw "Package ${1} is installed and will be removed."
             upd && [[ ${1} = prelink ]] && prelink -ua
             upd && apt purge ${1}
             upd && apt -y autoremove ${1} ;;
@@ -503,7 +510,7 @@ function remove_package() {
     esac
 }
 
-# Updates information in conf files. 
+# Updates information in conf files.
 # Parameter 1 = file name
 # Parameter 2 = search text
 # Parameter 3 = replacement text
@@ -523,8 +530,8 @@ function update_conf() {
                 0)  if  [[ ${STR} = ${REP} ]]; then
                         prn "File ${1} already contains: ${REP}."
                     else
-                        upd || prw "File ${1} has:${STR}. This needs to be changed to:${REP}."
-                        upd && prw "File ${1} has:${STR}. Changing to:${REP}."
+                        upd || prw "${1} has: ${STR}."
+                        upd && prw "${1} has: ${STR}. Changing to:${REP}."
                         STR=$(<<<"${STR}" sed 's/[].*[]/\\&/g')
                         upd && sed -i "/^${STR}/ c ${REP}" ${1}
                     fi ;;
@@ -534,17 +541,17 @@ function update_conf() {
             esac
             echo ${1} | grep -q sysctl
                 case $? in
-                    0) upd && sysctl -wq net.ipv4.route.flush=1 
+                    0) upd && sysctl -wq net.ipv4.route.flush=1
                        ip6 && upd && sysctl -wq net.ipv6.route.flush=1 ;;
             esac
-        fi    
-    fi    
+        fi
+    fi
 }
 
-# Update-grub  updates/etc/default/grub.  
-# Parameter 1 = Grub boot parameter 
+# Update-grub  updates/etc/default/grub.
+# Parameter 1 = Grub boot parameter
 function update_grub() {
-    local STR 
+    local STR
     case ${1-} in
         ?*) grep "^GRUB_CMDLINE_LINUX=" -q /etc/default/grub
             case $? in
@@ -562,10 +569,10 @@ function update_grub() {
     upd && chmod 400 /boot/grub/grub.cfg
 }
 
-######################################## END OF FUNCTIONS ####################################### 
+######################################## END OF FUNCTIONS #######################################
 
 NO=1.1.1.1;   W=1; S=1; E=; SC=;  BD='Ensure mounting of cramfs filesystems is disabled'
-lev && (update_modprobe cramfs) 
+lev && (update_modprobe cramfs)
 
 NO=1.1.1.2;   W=1; S=1; E=; SC=;  BD='Ensure mounting of freevxfs filesystems is disabled'
 lev && (update_modprobe freevxfs)
@@ -596,7 +603,7 @@ lev && (
         upd && systemctl daemon-reload
         upd && systemctl --now enable tmp.mount
     fi
-) 
+)
 
 NO=1.1.3;     W=1; S=1; E=; SC=;  BD='Ensure nodev option set on /tmp partition'
 #change to systemd tmpfs
@@ -612,10 +619,10 @@ NO=1.1.6;     W=1; S=1; E=; SC=;  BD='Ensure /dev/shm is configured'
 lev && (
     mount | grep -q -E "\s/dev/shm\s"
     case $? in
-        0)  prn "Found /dev/shm filesystem in mount." 
+        0)  prn "Found /dev/shm filesystem in mount."
             grep -q -E "\s/dev/shm\s" /etc/fstab
             case $? in
-                0)  prn "/dev/shm found in /etc/fstab." 
+                0)  prn "/dev/shm found in /etc/fstab."
                     update_fstab /dev/shm 'defaults,nodev,nosuid,noexec';;
                 *)  upd || prw "/dev/shm needs to be added to /etc/fstab"
                     upd && prw "Adding /dev/shm to /etc/fstab"
@@ -651,14 +658,14 @@ NO=1.1.14;    W=2; S=2; E=; SC=;  BD='Ensure noexec option set on /var/tmp parti
 lev  # Updated in 1.1.12
 
 NO=1.1.15;    W=2; S=2; E=; SC=;  BD='Ensure separate partition exists for /var/log'
-lev && (check_fstab /var/log) 
+lev && (check_fstab /var/log)
 
 NO=1.1.16;    W=2; S=2; E=; SC=;  BD='Ensure separate partition exists for /var/log/audit'
 lev && (check_fstab /var/log/audit)
 
 NO=1.1.17;    W=2; S=2; E=; SC=;  BD='Ensure separate partition exists for /home'
 lev && (check_fstab /home)
- 
+
 NO=1.1.18;    W=1; S=1; E=; SC=;  BD='Ensure nodev option set on /home partition'
 lev && (update_fstab /home 'defaults,nodev')
 
@@ -711,7 +718,7 @@ lev && (
                             while IFS= read FILE; do
                                 printf '##APTK## %s\n' "${FILE}" >> ${CISRC}
                             done < <(apt-key list 2>/dev/null) ;;
-                esac 
+                esac
             ) ;;
     esac
 )
@@ -721,8 +728,8 @@ lev && (
     install_package aide
     install_package aide-common
     if  [[ ! -f /var/lib/aide/aide.db.new ]]; then
-        upd || prw "Aideinit needs to be executed." 
-        upd && prn "Executing aideinit. This could take a long time." 
+        upd || prw "Aideinit needs to be executed."
+        upd && prn "Executing aideinit. This could take a long time."
         upd && aideinit
     fi
 )
@@ -760,7 +767,7 @@ lev && [[ $GRP ]] && (
         case $? in
             0)  prn "Grub password is already set" ;;
             *)  echo -e "\n\nSet grub password. Use at least 15 characters.\n"
-                grub-mkpasswd-pbkdf2 | tee ${TMP1} 
+                grub-mkpasswd-pbkdf2 | tee ${TMP1}
                 grep "^PBKDF2" -q ${TMP1}
                 case $? in
                     0)  update_conf /etc/grub.d/${GRF} "set superusers=\"${SUDOUSR:-root}\""
@@ -818,7 +825,7 @@ lev && (
     update_grub "security=apparmor"
     update_grub "apparmor=1"
 )
-    
+
 NO=1.6.1.3;   W=1; S=1; E=; SC=;  BD='Ensure all AppArmor Profiles are in enforce or complain mode'
 lev && (
     upd && aa-complain /etc/apparmor.d/*
@@ -826,7 +833,7 @@ lev && (
     qte && apparmor_status | grep profiles >> ${CISLOG}
     qte && apparmor_status | grep processes >> ${CISLOG}
 )
-    
+
 NO=1.6.1.4;   W=2; S=2; E=; SC=;  BD='Ensure all AppArmor Profiles are enforcing'
 lev && (
     upd && aa-enforce /etc/apparmor.d/*
@@ -834,7 +841,7 @@ lev && (
     qte && apparmor_status | grep profiles >> ${CISLOG}
     qte && apparmor_status | grep processes >> ${CISLOG}
 )
-    
+
 NO=1.7.1;     W=1; S=1; E=; SC=;  BD='Ensure message of the day is configured properly'
 lev && (update_message /etc/motd)
 
@@ -884,7 +891,7 @@ lev && (
         update_conf /etc/gdm3/custom.conf 'enable=true' '#enable=true'
     fi
 )
-   
+
 NO=1.9;       W=1; S=1; E=; SC=N; BD='Ensure updates, patches, and additional security software are installed'
 lev && (
     wget -q --spider http://google.com
@@ -902,11 +909,11 @@ lev && (
 NO=2.1.1.1;   W=1; S=1; E=; SC=;  BD='Ensure time synchronization is in use'
 lev && (
     case ${NT} in
-        systemd) remove_package    ntp 
-                 remove_package    chrony 
+        systemd) remove_package    ntp
+                 remove_package    chrony
                  upd && systemctl enable  systemd-timesyncd.service
                  upd && systemctl start   systemd-timesyncd.service ;;
-        chrony)  remove_package    ntp 
+        chrony)  remove_package    ntp
                  install_package   chrony
                  upd && systemctl disable systemd-timesyncd.service
                  upd && systemctl stop    systemd-timesyncd.service ;;
@@ -919,7 +926,7 @@ lev && (
 )
 
 NO=2.1.1.2;   W=1; S=1; E=; SC=;  BD='Ensure systemd-timesyncd is configured'
-lev && [[ ${NT} = systemd ]] && (check_systemctl systemd-timesyncd.service) 
+lev && [[ ${NT} = systemd ]] && (check_systemctl systemd-timesyncd.service)
 
 NO=2.1.1.3;   W=1; S=1; E=; SC=;  BD='Ensure chrony is configured'
 lev && [[ ${NT} = chrony ]] && (
@@ -1040,10 +1047,10 @@ lev && (
 NO=3.2.2;     W=1; S=1; E=; SC=;  BD='Ensure IP forwarding is disabled'
 lev && (
     update_conf /etc/sysctl.d/local.conf 'net.ipv4.ip_forward' 'net.ipv4.ip_forward = 0'
-    ip6 && update_conf /etc/sysctl.d/local.conf 'net.ipv6.conf.all.forwarding' 'net.ipv6.conf.all.forwarding = 0' 
+    ip6 && update_conf /etc/sysctl.d/local.conf 'net.ipv6.conf.all.forwarding' 'net.ipv6.conf.all.forwarding = 0'
 )
 
-NO=3.3.1;     W=1; S=1; E=; SC=;  BD='Ensure source routed packets are not accepted' 
+NO=3.3.1;     W=1; S=1; E=; SC=;  BD='Ensure source routed packets are not accepted'
 lev && (
     update_conf /etc/sysctl.d/local.conf 'net.ipv4.conf.all.accept_source_route' 'net.ipv4.conf.all.accept_source_route = 0'
     update_conf /etc/sysctl.d/local.conf 'net.ipv4.conf.default.accept_source_route' 'net.ipv4.conf.default.accept_source_route = 0'
@@ -1073,13 +1080,13 @@ lev && (
         grep -q ^net.ipv4.conf.all.log_martians /etc/ufw/sysctl.conf
         case $? in
             0) upd || prw 'File /etc/ufw/sysctl.conf overrides /etc/sysctl.conf with parameter net.ipv4.conf.all.log_martians. This must be fixed.'
-               upd && prw 'File /etc/ufw/sysctl.conf overrides /etc/sysctl.conf with parameter net.ipv4.conf.all.log_martians. Fixing.' 
+               upd && prw 'File /etc/ufw/sysctl.conf overrides /etc/sysctl.conf with parameter net.ipv4.conf.all.log_martians. Fixing.'
                upd && sed -i "/^net.ipv4.conf.all.log_martians/ c #net.ipv4.conf.all.log_martians" /etc/ufw/sysctl.conf ;;
         esac
         grep -q ^net.ipv4.conf.default.log_martians /etc/ufw/sysctl.conf
         case $? in
             0) upd || prw '/etc/ufw/sysctl.conf overrides /etc/sysctl.conf with parameter net.ipv4.conf.default.log_martians. This must be fixed.'
-               upd && prw '/etc/ufw/sysctl.conf overrides /etc/sysctl.conf with parameter net.ipv4.conf.default.log_martians. Fixing.' 
+               upd && prw '/etc/ufw/sysctl.conf overrides /etc/sysctl.conf with parameter net.ipv4.conf.default.log_martians. Fixing.'
                upd && sed -i "/^net.ipv4.conf.default.log_martians/ c #net.ipv4.conf.default.log_martians" /etc/ufw/sysctl.conf ;;
         esac
     fi
@@ -1136,7 +1143,7 @@ lev && UFW && (
         upd || prw "UFW firewall needs to be enabled."
         upd && prw "Enabling UFW firewall."
         upd && ufw enable
-        err || prn "UFW: Firewall is enabled." 
+        err || prn "UFW: Firewall is enabled."
     )
     ip6 && (update_conf /etc/default/ufw 'IPV6' 'IPV6=yes')
     ip6 || (update_conf /etc/default/ufw 'IPV6' 'IPV6=no')
@@ -1173,7 +1180,7 @@ lev && UFW && (
             0)  prn "UFW: TCP Port ${PORT} is already open." ;;
             *)  upd || prn "UFW: Port ${PORT} might need to be opened."
                 upd && prw "UFW: Opening port ${PORT}."
-                case ${PORT} in 
+                case ${PORT} in
                     22) upd && ufw allow proto tcp from ${INTNETWORK} to any port ${PORT} ;;
                     *)  upd && ufw allow proto tcp to any port ${PORT} ;;
                 esac ;;
@@ -1200,7 +1207,7 @@ lev && UFW && (
 )
 
 NO=3.5.2.1;   W=1; S=1; E=; SC=;  BD='Ensure nftables is installed'
-lev && nft && (install_package nftables) 
+lev && nft && (install_package nftables)
 
 NO=3.5.2.2;   W=1; S=1; E=; SC=;  BD='Ensure ufw is uninstalled or disabled with nftables'
 lev && nft && (remove_package ufw)
@@ -1216,7 +1223,7 @@ lev && nft && upd && (nft create table inet filter)
 
 NO=3.5.2.5;   W=1; S=1; E=; SC=;  BD='Ensure nftables base chains exist'
 lev && nft && (
-    upd && nft create chain inet filter input   { type filter hook input priority 0 \; } 
+    upd && nft create chain inet filter input   { type filter hook input priority 0 \; }
     upd && nft create chain inet filter forward { type filter hook forward priority 0 \; }
     upd && nft create chain inet filter output  { type filter hook output priority 0 \; }
 )
@@ -1255,7 +1262,7 @@ lev && nft && upd && (systemctl enable nftables)
 
 NO=3.5.2.10;  W=1; S=1; E=; SC=;  BD='Ensure nftables rules are permanent'
 lev && nft && (update_conf /etc/nftables.conf 'include "/etc/nftables.rules"')
- 
+
 NO=3.5.3.1.1; W=1; S=1; E=; SC=;  BD='Ensure iptables packages are installed'
 lev && ipt && (
     install_package iptables
@@ -1263,10 +1270,10 @@ lev && ipt && (
 )
 
 NO=3.5.3.1.2; W=1; S=1; E=; SC=;  BD='Ensure nftables is not installed with iptables'
-lev && ipt && (remove_package nftables) 
+lev && ipt && (remove_package nftables)
 
 NO=3.5.3.1.3; W=1; S=1; E=; SC=;  BD='Ensure ufw is uninstalled or disabled with iptables'
-lev && ipt && (remove_package ufw) 
+lev && ipt && (remove_package ufw)
 
 NO=3.5.3.2.1; W=1; S=1; E=; SC=;  BD='Ensure iptables loopback traffic is configured'
 lev && ipt && (
@@ -1307,12 +1314,12 @@ lev && ipt && (
     upd && prn "Iptables. Configuring firewall rules for all open ports."
 # tcp
     while read PORT; do
-        iptables -nL | grep ${PORT} | grep -q tcp 
+        iptables -nL | grep ${PORT} | grep -q tcp
         case $? in
             0)  prn "TCP Port ${PORT} is already open in iptables." ;;
             *)  upd || prn "Iptables: Port ${PORT} might need to be opened."
                 upd && prw "Iptables: Opening port ${PORT} ."
-                case ${PORT} in 
+                case ${PORT} in
                     22) upd && iptables -A INPUT --source ${INTNETWORK} -p tcp --dport 22 -m state --state NEW -j ACCEPT ;;
                     *)  upd && iptables -A INPUT -p tcp --dport ${PORT} -m state --state NEW -j ACCEPT ;;
                 esac ;;
@@ -1320,7 +1327,7 @@ lev && ipt && (
     done < <(netstat -tnlp | grep "^tcp " | grep -v 127 | cut -d: -f2 | awk  '{print $1}')
 # udp
     while read PORT; do
-        iptables -nL | grep ${PORT} | grep -q udp 
+        iptables -nL | grep ${PORT} | grep -q udp
         case $? in
             0)  prn "UDP Port ${PORT} is already open in iptables." ;;
             *)  upd || prn "Iptables: Port ${PORT} might need to be opened."
@@ -1399,14 +1406,14 @@ lev && ipt && ip6 && (
 NO=4.1.1.1;   W=2; S=2; E=; SC=;  BD='Ensure auditd is installed'
 lev && (
     install_package auditd
-    install_package audispd-plugins 
+    install_package audispd-plugins
 )
 
 NO=4.1.1.2;   W=2; S=2; E=; SC=;  BD='Ensure auditd service is enabled'
 lev && (check_systemctl auditd)
 
 NO=4.1.1.3;   W=2; S=2; E=; SC=;  BD='Ensure auditing for processes that start prior to auditd is enabled'
-lev && (update_grub "audit=1") 
+lev && (update_grub "audit=1")
 
 NO=4.1.1.4;   W=2; S=2; E=; SC=;  BD='Ensure audit_backlog_limit is sufficient'
 lev && (update_grub "audit_backlog_limit=${AUDITLIMIT}")
@@ -1440,7 +1447,7 @@ lev && (
     update_conf /etc/audit/rules.d/audit.rules '-w  /etc/gshadow -p wa -k identity'
     update_conf /etc/audit/rules.d/audit.rules '-w  /etc/shadow -p wa -k identity'
     update_conf /etc/audit/rules.d/audit.rules '-w  /etc/security/opasswd -p wa -k identity'
-)    
+)
 
 NO=4.1.5;     W=2; S=2; E=; SC=;  BD='Ensure events that modify the systems network environment are collected'
 lev && (
@@ -1583,7 +1590,7 @@ lev && [[ ${LOGHOST} ]] && (
 
 NO=4.2.1.6;   W=1; S=1; E=; SC=N; BD='Ensure remote rsyslog messages are only accepted on designated log hosts'
 lev
-    # for hosts that are designated log hosts edit /etc/rsyslog.conf 
+    # for hosts that are designated log hosts edit /etc/rsyslog.conf
     #$ModLoad imtcp
     #$InProtocol 2putTCPServerRun 514
     ## for hosts that are not designated log hosts remove in /etc/rsyslog.conf
@@ -1604,7 +1611,7 @@ lev && (
     [[ $(find /var/log -type f -perm /g+w,g+x,o+r,o+w,o+x | wc -l) -eq 0 ]] || {
         upd || prw "Some /var/log files have group w,x or other r,w,x permissions. This needs to be fixed."
         upd && prw "Some /var/log files have group w,x or other r,w,x permissions. Fixing!"
-        upd && find /var/log -type f -exec chmod g-wx,o-rwx {} \; 
+        upd && find /var/log -type f -exec chmod g-wx,o-rwx {} \;
     }
     err  || prn "No /var/log files have group r,w or other r,w,x permissions."
     E=
@@ -1677,16 +1684,16 @@ lev && ssd && (update_file /etc/ssh/sshd_config root root 600)
 
 NO=5.3.2;     W=1; S=1; E=; SC=;  BD='Ensure permissions on SSH private host key files are configured'
 lev && ssd && (
-    for KEY in /etc/ssh/ssh_host_*_key; do 
+    for KEY in /etc/ssh/ssh_host_*_key; do
         update_file ${KEY} root root 600
-    done 
+    done
 )
 
 NO=5.3.3;     W=1; S=1; E=; SC=;  BD='Ensure permissions on SSH public host key files are configured'
 lev && ssd && (
-    for KEY in /etc/ssh/ssh_host_*_key.pub; do 
+    for KEY in /etc/ssh/ssh_host_*_key.pub; do
         update_file ${KEY} root root 644
-    done 
+    done
 )
 
 NO=5.3.4;     W=1; S=1; E=; SC=;  BD='Ensure SSH access is limited'
@@ -1723,7 +1730,7 @@ NO=5.3.14;    W=1; S=1; E=; SC=;  BD='Ensure only strong MAC algorithms are used
 lev && ssd && (update_conf /etc/ssh/sshd_config 'MACs' 'MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256')
 
 NO=5.3.15;    W=1; S=1; E=; SC=;  BD='Ensure only strong Key Exchange algorithms are used'
-lev && ssd && (update_conf /etc/ssh/sshd_config 'KexAlgorithms' 'KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256') 
+lev && ssd && (update_conf /etc/ssh/sshd_config 'KexAlgorithms' 'KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256')
 
 NO=5.3.16;    W=1; S=1; E=; SC=;  BD='Ensure SSH Idle Timeout Interval is configured'
 lev && ssd && (
@@ -1753,7 +1760,7 @@ lev && ssd && (update_conf /etc/ssh/sshd_config 'MaxSessions' "MaxSessions ${SSH
 NO=5.4.1;     W=1; S=1; E=; SC=;  BD='Ensure password creation requirements are configured'
 lev && (
     install_package libpam-pwquality
-    update_conf /etc/pam.d/common-password "password	requisite			pam_pwquality" "password	requisite			pam_pwquality.so	retry=${PAMRETRY}"
+    update_conf /etc/pam.d/common-password "password    requisite                       pam_pwquality" "password        requisite                       pam_pwquality.so   retry=${PAMRETRY}"
     update_conf /etc/security/pwquality.conf "minlen"  "minlen  = ${PAMMINLEN}"
     update_conf /etc/security/pwquality.conf "dcredit" "dcredit = ${PAMDCREDIT}"
     update_conf /etc/security/pwquality.conf "ucredit" "ucredit = ${PAMUCREDIT}"
@@ -1763,18 +1770,18 @@ lev && (
 
 NO=5.4.2;     W=1; S=1; E=; SC=;  BD='Ensure lockout for failed password attempts is configured'
 lev && (
-    update_conf /etc/pam.d/common-auth "auth	required			pam_tally2.so" "auth	required			pam_tally2.so	onerr=fail	audit	silent	deny=${PAMDENY}	unlock_time=${PAMUNLOCK}"
-    update_conf /etc/pam.d/common-account 'account	requisite			pam_deny.so'
-    update_conf /etc/pam.d/common-account 'account	required			pam_tally2.so'
+    update_conf /etc/pam.d/common-auth "auth    required                        pam_tally2.so" "auth    required                        pam_tally2.so   onerr=fail      audit       silent  deny=${PAMDENY} unlock_time=${PAMUNLOCK}"
+    update_conf /etc/pam.d/common-account 'account      requisite                       pam_deny.so'
+    update_conf /etc/pam.d/common-account 'account      required                        pam_tally2.so'
 )
 
 NO=5.4.3;     W=1; S=1; E=; SC=;  BD='Ensure password reuse is limited'
-lev && (update_conf /etc/pam.d/common-password "password	required	pam_pwhistory.so" "password	required	pam_pwhistory.so	remember=${PAMHISTORY}")
+lev && (update_conf /etc/pam.d/common-password "password        required        pam_pwhistory.so" "password     required        pam_pwhistory.so        remember=${PAMHISTORY}")
 
 NO=5.4.4;     W=1; S=1; E=; SC=;  BD='Ensure password hashing algorithm is SHA-512'
 lev && (
     grep "^password" /etc/pam.d/common-password | grep -q ${PAMENCRYPT}
-    (($? != 0)) && (update_conf /etc/pam.d/common-password 'password	\[success=1 default=ignore\]	pam_unix.so' 'password	[success=1 default=ignore]	pam_unix.so sha512')
+    (($? != 0)) && (update_conf /etc/pam.d/common-password 'password    \[success=1 default=ignore\]    pam_unix.so' 'password  [success=1 default=ignore]      pam_unix.so sha512')
 )
 
 # Parameter 1 = (4=mindays,5=maxdays, 6=warndays,7=inactive)
@@ -1811,15 +1818,15 @@ lev && (
 NO=5.5.2;     W=1; S=1; E=; SC=;  BD='Ensure system accounts are secured'
 lev && (
     while read USR; do
-        upd || prw "System account ${USR} has shell $(grep ^${USR} /etc/passwd | awk -F: '{print $7}'). It needs to be changed to $(which nologin)." 
+        upd || prw "System account ${USR} has shell $(grep ^${USR} /etc/passwd | awk -F: '{print $7}'). It needs to be changed to $(which nologin)."
         upd && prw "Changing system account ${USR} shell from $(grep ^${USR} /etc/passwd | awk -F: '{print $7}') to $(which nologin)."
         upd && usermod -s $(which nologin) ${USR}
     done < <(awk -F: '($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $1!~/^\+/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' && $7!="'"$(which nologin)"'" && $7!="/bin/false") {print $1}' /etc/passwd)
-    err     || prn "All system accounts except root,sync,shutdown,halt have $(which nologin) shell." 
+    err     || prn "All system accounts except root,sync,shutdown,halt have $(which nologin) shell."
     E=
     while read USR; do
-        upd || prw "System account ${USR} needs to be locked." 
-        upd && prw "Locking system account ${USR}." 
+        upd || prw "System account ${USR} needs to be locked."
+        upd && prw "Locking system account ${USR}."
         upd && usermod -L ${USR}
         exit 5
     done < <(awk -F: '($1!="root" && $1!~/^\+/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!="L" && $2!="LK") {print $1}')
@@ -1829,8 +1836,8 @@ lev && (
 NO=5.5.3;     W=1; S=1; E=; SC=;  BD='Ensure default group for the root account is GID 0'
 lev && (
     if [[ $(grep "^root:" /etc/passwd | cut -d: -f4) != "0" ]]; then
-        upd || prw "Root account does not have group ID 0. Please investigate." 
-        upd && prw "Setting root account group ID to 0. Please investigate why group ID is not set to 0." 
+        upd || prw "Root account does not have group ID 0. Please investigate."
+        upd && prw "Setting root account group ID to 0. Please investigate why group ID is not set to 0."
         upd && usermod -g 0 root
     fi
     err     || prn "Root account has group ID 0."
@@ -1838,9 +1845,9 @@ lev && (
 
 NO=5.5.4;     W=1; S=1; E=; SC=;  BD='Ensure default user umask is 027 or more restrictive'
 lev && (
-    update_conf /etc/pam.d/common-session 'session	optional			pam_umask.so'
-    update_conf /etc/login.defs 'UMASK' 'UMASK	027'
-    update_conf /etc/login.defs 'USERGROUPS_ENAB' 'USERGROUPS_ENAB	no'
+    update_conf /etc/pam.d/common-session 'session      optional                        pam_umask.so'
+    update_conf /etc/login.defs 'UMASK' 'UMASK  027'
+    update_conf /etc/login.defs 'USERGROUPS_ENAB' 'USERGROUPS_ENAB      no'
 )
 
 NO=5.5.5;     W=1; S=1; E=; SC=;  BD='Ensure default user shell timeout is 900 seconds or less'
@@ -1857,23 +1864,23 @@ lev && (
         for CONSOLE in ${ROOTLOGIN}
         do
             update_conf /etc/securetty "${CONSOLE}"
-        done 
+        done
     fi
 )
 
 NO=5.7;       W=1; S=1; E=; SC=;  BD='Ensure access to the su command is restricted'
 lev && (
-    update_conf /etc/pam.d/su "auth	required			pam_wheel.so" "auth	required			pam_wheel.so	use_uid	group=${SUGROUP}"
+    update_conf /etc/pam.d/su "auth     required                        pam_wheel.so" "auth     required                        pam_wheel.so    use_uid group=${SUGROUP}"
     grep -q ^${SUGROUP} /etc/group
     case $? in
-        0)  prn "Group ${SUGROUP} already exists in /etc/group." 
+        0)  prn "Group ${SUGROUP} already exists in /etc/group."
             grep ${SUGROUP} /etc/group | cut -d: -f4 | grep -i '[a-z]'
             case $? in
                 0)  prw "Group ${SUGROUP} contains user accounts. It should be empty." ;;
                 *)  prn "Group ${SUGROUP} does not contains any users." ;;
             esac ;;
-        *)  upd || prw "Group ${SUGROUP} needs to be added to /etc/group." 
-            upd && prw "Adding Group ${SUGROUP} to /etc/group." 
+        *)  upd || prw "Group ${SUGROUP} needs to be added to /etc/group."
+            upd && prw "Adding Group ${SUGROUP} to /etc/group."
             upd && groupadd ${SUGROUP} ;;
     esac
 )
@@ -1885,10 +1892,10 @@ lev && (
     done < <(apt list --installed 2> /dev/null | cut -d"/" -f1 | grep -v Listing)
     if  [[ -s ${TMP1} ]]; then
         prw "The following packages have been modified. Please check."
-        cat ${TMP1} 
+        cat ${TMP1}
         cat ${TMP1} >> ${CISWARNLOG}
     fi
-    err || prn "No packages have been modified." 
+    err || prn "No packages have been modified."
 )
 
 NO=6.1.2;     W=1; S=1; E=; SC=;  BD='Ensure permissions on /etc/passwd are configured'
@@ -1917,32 +1924,32 @@ lev && (update_file /etc/gshadow- root shadow 640)
 
 NO=6.1.10;    W=1; S=1; E=; SC=;  BD='Ensure no world writable files exist'
 lev && (
-    while read FILE; do 
-        upd || prw "File ${FILE} is world-writable. This needs to be fixed." 
-        upd && prw "File ${FILE} is world-writable. Fixing permissions." 
+    while read FILE; do
+        upd || prw "File ${FILE} is world-writable. This needs to be fixed."
+        upd && prw "File ${FILE} is world-writable. Fixing permissions."
         upd && chmod o-w ${FILE}
     done < <(df --local -P | grep -v "/run" | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type f -perm -0002)
-    err || prn "No world-writable files found." 
+    err || prn "No world-writable files found."
 )
 
 NO=6.1.11;    W=1; S=1; E=; SC=;  BD='Ensure no unowned files or directories exist'
 lev && (
-    while read FILE; do 
-        upd || prw "File ${FILE} is unowned. This needs to be changed to $(stat -c %U $(dirname ${FILE}))." 
+    while read FILE; do
+        upd || prw "File ${FILE} is unowned. This needs to be changed to $(stat -c %U $(dirname ${FILE}))."
         upd && prw "File ${FILE} is unowned. Changing user to $(stat -c %U $(dirname ${FILE}))."
-        upd && chown -h $(stat -c %U $(dirname ${FILE})) ${FILE} 
+        upd && chown -h $(stat -c %U $(dirname ${FILE})) ${FILE}
     done < <(df --local -P | grep -v "/run" | awk {'if (NR!=1) print $6'} | xargs -I '{}' find '{}' -xdev -nouser)
-    err || prn "No unowned files found." 
+    err || prn "No unowned files found."
 )
 
 NO=6.1.12;    W=1; S=1; E=; SC=;  BD='Ensure no ungrouped files or directories exist'
 lev && (
-    while read FILE; do 
-        upd || prw "File ${FILE} is ungrouped. This needs to be changed to $(stat -c %G $(dirname ${FILE}))." 
+    while read FILE; do
+        upd || prw "File ${FILE} is ungrouped. This needs to be changed to $(stat -c %G $(dirname ${FILE}))."
         upd && prw "File ${FILE} is ungrouped. Changing group to $(stat -c %G $(dirname ${FILE}))."
-        upd && chgrp -h $(stat -c %G $(dirname ${FILE})) ${FILE} 
+        upd && chgrp -h $(stat -c %G $(dirname ${FILE})) ${FILE}
     done < <(df --local -P | grep -v "/run" | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -nogroup)
-    err || prn "No ungrouped files found." 
+    err || prn "No ungrouped files found."
 )
 
 NO=6.1.13;    W=1; S=1; E=; SC=N; BD='Audit SUID executables'
@@ -1961,7 +1968,7 @@ lev && (
                             while IFS= read -r FILE; do
                                 printf '##SUID## %s\n' "${FILE}" >> ${CISRC}
                             done < <(df --local -P | awk {'if (NR!=1) print $6'} | xargs -I '{}' find '{}' -xdev -type f -perm -4000 2>/dev/null | sort) ;;
-                esac 
+                esac
             ) ;;
     esac
 )
@@ -1989,7 +1996,7 @@ lev && (
 
 NO=6.2.1;     W=1; S=1; E=; SC=;  BD='Ensure accounts in /etc/passwd use shadowed passwords'
 lev && (
-    while read USR; do 
+    while read USR; do
         prw "User ${USR} is not set to shadowed password. Investigate and fix manually."
     done < <(awk -F: '($2 != "x" ) {print $1}' /etc/passwd)
     err || prn "All logins use shadowed passwords."
@@ -1997,7 +2004,7 @@ lev && (
 
 NO=6.2.2;     W=1; S=1; E=; SC=;  BD='Ensure password fields are not empty'
 lev && (
-    while read USR; do 
+    while read USR; do
         upd || prw "User ${USR} has no password. This account needs to be locked."
         upd && prw "User ${USR} has no password. Locking this account."
         upd && usermod -L ${USR}
@@ -2007,11 +2014,11 @@ lev && (
 
 NO=6.2.3;     W=1; S=1; E=; SC=;  BD='Ensure all groups in /etc/passwd exist in /etc/group'
 lev && (
-    for GROUP in $(cut -s -d: -f4 /etc/passwd | sort -u ); do 
-        grep -q -P "^.*?:[^:]*:${GROUP}:" /etc/group 
-        if [[ $? -ne 0 ]]; then 
-            prw "Group ${GROUP} is referenced by /etc/passwd but does not exist in /etc/group." 
-        fi 
+    for GROUP in $(cut -s -d: -f4 /etc/passwd | sort -u ); do
+        grep -q -P "^.*?:[^:]*:${GROUP}:" /etc/group
+        if [[ $? -ne 0 ]]; then
+            prw "Group ${GROUP} is referenced by /etc/passwd but does not exist in /etc/group."
+        fi
     done
     err || prn "All groups in /etc/passwd exist in /etc/group."
 )
@@ -2032,125 +2039,125 @@ lev && (
 
 NO=6.2.5;     W=1; S=1; E=; SC=;  BD='Ensure users own their home directories'
 lev && (
-    while read USR DIR; do 
-        if [[ ! -d ${DIR} ]]; then 
-            prw "The home directory (${DIR}) of user ${USR} does not exist." 
-        else 
-            OWNER=$(stat -L -c "%U" "${DIR}") 
-            if [[ ${OWNER} != ${USR} ]]; then 
-                prw "The home directory (${DIR}) of user ${USR} is owned by ${OWNER}." 
-            fi 
-        fi 
-    done < <(grep -E -v '^(halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }') 
+    while read USR DIR; do
+        if [[ ! -d ${DIR} ]]; then
+            prw "The home directory (${DIR}) of user ${USR} does not exist."
+        else
+            OWNER=$(stat -L -c "%U" "${DIR}")
+            if [[ ${OWNER} != ${USR} ]]; then
+                prw "The home directory (${DIR}) of user ${USR} is owned by ${OWNER}."
+            fi
+        fi
+    done < <(grep -E -v '^(halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }')
     err || prn "All users own their home directories."
 )
 
 NO=6.2.6;     W=1; S=1; E=; SC=;  BD='Ensure users home directories permissions are 750 or more restrictive'
 lev && (
-    while read USR DIR; do 
-        if [[ ! -d ${DIR} ]]; then 
-            prw "The home directory (${DIR}) of user ${USR} does not exist." 
-        else 
-            PERM=$(ls -ld ${DIR} | cut -f1 -d" ") 
+    while read USR DIR; do
+        if [[ ! -d ${DIR} ]]; then
+            prw "The home directory (${DIR}) of user ${USR} does not exist."
+        else
+            PERM=$(ls -ld ${DIR} | cut -f1 -d" ")
             if  [[ $(echo ${PERM} | cut -c1) = "l" ]]; then
-                prw "${DIR} is a symbolic link. Fix manually." 
+                prw "${DIR} is a symbolic link. Fix manually."
             else
-                if  [[ $(echo ${PERM} | cut -c6) != "-" ]]; then 
-                    upd || prw "Group Write permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed." 
-                    upd && prw "Group Write permission set on the home directory (${DIR}) of user ${USR}. Fixing." 
+                if  [[ $(echo ${PERM} | cut -c6) != "-" ]]; then
+                    upd || prw "Group Write permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed."
+                    upd && prw "Group Write permission set on the home directory (${DIR}) of user ${USR}. Fixing."
                     upd && chmod g-w ${DIR}
-                fi 
-                if  [[ $(echo ${PERM} | cut -c8) != "-" ]]; then 
-                    upd || prw "Other Read permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed." 
-                    upd && prw "Other Read permission set on the home directory (${DIR}) of user ${USR}. Fixing." 
+                fi
+                if  [[ $(echo ${PERM} | cut -c8) != "-" ]]; then
+                    upd || prw "Other Read permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed."
+                    upd && prw "Other Read permission set on the home directory (${DIR}) of user ${USR}. Fixing."
                     upd && chmod o-r ${DIR}
-                fi 
-                if  [[ $(echo ${PERM} | cut -c9) != "-" ]]; then 
-                    upd || prw "Other Write permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed." 
-                    upd && prw "Other Write permission set on the home directory (${DIR}) of user ${USR}. Fixing." 
+                fi
+                if  [[ $(echo ${PERM} | cut -c9) != "-" ]]; then
+                    upd || prw "Other Write permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed."
+                    upd && prw "Other Write permission set on the home directory (${DIR}) of user ${USR}. Fixing."
                     upd && chmod o-w ${DIR}
-                fi 
-                if  [[ $(echo ${PERM} | cut -c10) != "-" ]]; then 
-                    upd || prw "Other Execute permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed." 
-                    upd && prw "Other Execute permission set on the home directory (${DIR}) of user ${USR}. Fixing." 
+                fi
+                if  [[ $(echo ${PERM} | cut -c10) != "-" ]]; then
+                    upd || prw "Other Execute permission set on the home directory (${DIR}) of user ${USR}. This needs to be fixed."
+                    upd && prw "Other Execute permission set on the home directory (${DIR}) of user ${USR}. Fixing."
                     upd && chmod o-x ${DIR}
-                fi 
-            fi 
+                fi
+            fi
         fi
-    done < <(grep -E -v '^(halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }') 
+    done < <(grep -E -v '^(halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }')
     err || prn "All home directories have correct permissions (750)."
 )
 
 NO=6.2.7;     W=1; S=1; E=; SC=;  BD='Ensure users dot files are not group or world writable'
 lev && (
-    while read USR DIR; do 
-        if [[ ! -d ${DIR} ]]; then 
-            prw "The home directory (${DIR}) of user ${USR} does not exist." 
-        else 
-            for FILE in ${DIR}/.[A-Za-z0-9]*; do 
-                if [[ ! -h "$FILE" ]] && [[ -f "$FILE" ]]; then 
-                    PERM=$(ls -ld ${FILE} | cut -f1 -d" ") 
+    while read USR DIR; do
+        if [[ ! -d ${DIR} ]]; then
+            prw "The home directory (${DIR}) of user ${USR} does not exist."
+        else
+            for FILE in ${DIR}/.[A-Za-z0-9]*; do
+                if [[ ! -h "$FILE" ]] && [[ -f "$FILE" ]]; then
+                    PERM=$(ls -ld ${FILE} | cut -f1 -d" ")
                     if  [[ $(echo ${PERM} | cut -c1) = "l" ]]; then
-                        prw "File ${FILE} is a symbolic link. Fix manually." 
+                        prw "File ${FILE} is a symbolic link. Fix manually."
                     else
-                        if  [[ $(echo ${PERM} | cut -c6) != "-" ]]; then 
-                            upd || prw "Group Write permission set on file ${FILE}. This needs to be fixed." 
-                            upd && prw "Group Write permission set on file ${FILE}. Fixing." 
+                        if  [[ $(echo ${PERM} | cut -c6) != "-" ]]; then
+                            upd || prw "Group Write permission set on file ${FILE}. This needs to be fixed."
+                            upd && prw "Group Write permission set on file ${FILE}. Fixing."
                             upd && chmod g-w ${FILE}
-                        fi 
-                        if  [[ $(echo ${PERM} | cut -c9) != "-" ]]; then 
-                            upd || prw "Other Write permission set on file ${FILE}. This needs to be fixed." 
-                            upd && prw "Other Write permission set on file ${FILE}. Fixing." 
+                        fi
+                        if  [[ $(echo ${PERM} | cut -c9) != "-" ]]; then
+                            upd || prw "Other Write permission set on file ${FILE}. This needs to be fixed."
+                            upd && prw "Other Write permission set on file ${FILE}. Fixing."
                             upd && chmod o-w ${FILE}
-                        fi 
-                    fi 
-                fi 
-            done 
+                        fi
+                    fi
+                fi
+            done
         fi
-    done < <(grep -E -v '^(halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }') 
+    done < <(grep -E -v '^(halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }')
     err || prn "All users dot files are not group or world writable."
 
 )
 
 NO=6.2.8;     W=1; S=1; E=; SC=;  BD='Ensure no users have .netrc files'
 lev && (
-    while read USR DIR; do 
-        if [[ ! -d ${DIR} ]]; then 
-            prw "The home directory (${DIR}) of user ${USR} does not exist." 
-        else 
-            if [[ -f "${DIR}/.netrc" ]]; then 
-                prw "User ${USR} has a .netrc file in ${DIR}. Fix manually." 
-            fi 
-        fi 
-    done < <(grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }') 
+    while read USR DIR; do
+        if [[ ! -d ${DIR} ]]; then
+            prw "The home directory (${DIR}) of user ${USR} does not exist."
+        else
+            if [[ -f "${DIR}/.netrc" ]]; then
+                prw "User ${USR} has a .netrc file in ${DIR}. Fix manually."
+            fi
+        fi
+    done < <(grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }')
     err || prn "No users have .netrc files."
 )
 
 NO=6.2.9;     W=1; S=1; E=; SC=;  BD='Ensure no users have .forward files'
 lev && (
-    while read USR DIR; do 
-        if [[ ! -d ${DIR} ]]; then 
-            prw "The home directory (${DIR}) of user ${USR} does not exist." 
-        else 
-            if [[ ! -h "${DIR}/.forward" && -f "${DIR}/.forward" ]]; then 
-                prw "User ${USR} has a .forward file ${DIR}. Fix manually." 
-            fi 
-        fi 
-    done < <(grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }') 
+    while read USR DIR; do
+        if [[ ! -d ${DIR} ]]; then
+            prw "The home directory (${DIR}) of user ${USR} does not exist."
+        else
+            if [[ ! -h "${DIR}/.forward" && -f "${DIR}/.forward" ]]; then
+                prw "User ${USR} has a .forward file ${DIR}. Fix manually."
+            fi
+        fi
+    done < <(grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }')
     err || prn "No users have .forward files."
 )
 
 NO=6.2.10;    W=1; S=1; E=; SC=;  BD='Ensure no users have .rhosts files'
 lev && (
-    while read USR DIR; do 
-        if [[ ! -d ${DIR} ]]; then 
-            prw "The home directory of user ${USR} does not exist." 
-        else 
-            if [[ ! -h ${DIR}/.rhosts ]] && [[ -f "${DIR}/.rhosts" ]]; then 
-                prw "${USR} has .rhosts file in ${DIR}" 
-            fi 
-        fi 
-    done < <(grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }') 
+    while read USR DIR; do
+        if [[ ! -d ${DIR} ]]; then
+            prw "The home directory of user ${USR} does not exist."
+        else
+            if [[ ! -h ${DIR}/.rhosts ]] && [[ -f "${DIR}/.rhosts" ]]; then
+                prw "${USR} has .rhosts file in ${DIR}"
+            fi
+        fi
+    done < <(grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '($7 != "'"$(which nologin)"'" && $7 != "/bin/false") { print $1 " " $6 }')
     err || prn "No users have .rhosts files."
 )
 
@@ -2159,7 +2166,7 @@ lev && (
     while read USR; do
         prw "User ${USR} has UID 0. Investigate and fix manually."
     done < <(awk -F: '($3 == 0) { print $1 }' /etc/passwd | grep -v root)
-    err || prn "No extra UID 0 users found." 
+    err || prn "No extra UID 0 users found."
 )
 
 NO=6.2.12;    W=1; S=1; E=; SC=;  BD='Ensure root PATH Integrity'
@@ -2216,14 +2223,14 @@ lev && (
     while read USR; do
         prw "User ${USR} has shadow group in /etc/passwd. This needs to be fixed manually."
     done < <(awk -F: '($4 == 42) {print $1}' /etc/passwd)
-    err || prn "No users belong to the shadow group." 
+    err || prn "No users belong to the shadow group."
     E=
     while read USR; do
         upd || prw "Shadow group account has user account: ${USR}. This needs to be fixed."
         upd && prw "Removing user accounts ${USR} from shadow group account."
         update_conf /etc/group "shadow:x:42:"
     done < <(awk -F: '($1 == "shadow") {print $4}' /etc/group | grep "[a-z,A-Z,0-9]")
-    err || prn "Shadow group account does not have any users." 
+    err || prn "Shadow group account does not have any users."
 )
 
 NO=9.9.9.9;   W=3; S=3; E=; SC=;  BD='Extra personal settings. Change S or W to 1'
@@ -2248,16 +2255,16 @@ qte || (
     echo -e "\n\n\n\n######################################"
 
     if [[ -s "${CISWARNLOG}" ]]; then
-        echo -e "\nWarning messages found in ${CISWARNLOG}\n" 
+        echo -e "\nWarning messages found in ${CISWARNLOG}\n"
         read -p 'Show warning log file? Y/n: ' ANS
         case ${ANS} in
             [nN]) : ;;
             *)    less ${CISWARNLOG} ;;
         esac
-        upd && echo -e "\nReboot server, fix errors and rerun script." 
+        upd && echo -e "\nReboot server, fix errors and rerun script."
     else
-        echo -e "\nNo warning messages found in ${CISWARNLOG}." 
-        echo -e "\nSystem is hardened." 
+        echo -e "\nNo warning messages found in ${CISWARNLOG}."
+        echo -e "\nSystem is hardened."
     fi
     echo -e "\n######################################"
 )
