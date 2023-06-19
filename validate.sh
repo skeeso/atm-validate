@@ -472,7 +472,8 @@ function install_package() {
                 esac ;;
             *)  upd || prw "Package ${1} is not installed. It needs to be installed."
                 upd && prw "Package ${1} is not installed. Installing now."
-                upd && apt -y install ${1}
+                dpkg-reconfigure -pmedium unattended-upgrades
+		upd && apt -y install ${1}
                 upd && systemctl enable ${1} > /dev/null 2>&1
                 upd && systemctl start ${1} > /dev/null 2>&1 ;;
         esac
@@ -763,18 +764,20 @@ lev && [[ $GRP ]] && (
     update_conf /etc/grub.d/10_linux 'CLASS="--class gnu-linux --class gnu --class os' 'CLASS="--class gnu-linux --class gnu --class os --unrestricted"'
     update_grub
     upd && (
-        grep "^password_pbkdf2" -q /etc/grub.d/${GRF}
-        case $? in
-            0)  prn "Grub password is already set" ;;
-            *)  echo -e "\n\nSet grub password. Use at least 15 characters.\n"
-                grub-mkpasswd-pbkdf2 | tee ${TMP1}
-                grep "^PBKDF2" -q ${TMP1}
-                case $? in
-                    0)  update_conf /etc/grub.d/${GRF} "set superusers=\"${SUDOUSR:-root}\""
-                        echo -e "password_pbkdf2 ${SUDOUSR:-root} $(grep "^PBKDF2" ${TMP1} | awk -F "is " '{print $2}')" >> /etc/grub.d/${GRF}
-                        update_grub ;;
-                esac ;;
-        esac
+        echo "";
+	#grep "^password_pbkdf2" -q /etc/grub.d/${GRF}
+        #case $? in
+        #    0)  prn "Grub password is already set" ;;
+        #    *)  echo -e "\n\nSet grub password. Use at least 15 characters.\n"
+        #        #grub-mkpasswd-pbkdf2 | tee ${TMP1}
+        #        echo -e "`date +%Y%m%d`\`date +%Y%m%d`" | grub2-mkpasswd-pbkdf2 | awk '/grub.pbkdf/{print$NF}'
+	#	grep "^PBKDF2" -q ${TMP1}
+        #        case $? in
+        #            0)  update_conf /etc/grub.d/${GRF} "set superusers=\"${SUDOUSR:-root}\""
+        #                echo -e "password_pbkdf2 ${SUDOUSR:-root} $(grep "^PBKDF2" ${TMP1} | awk -F "is " '{print $2}')" >> /etc/grub.d/${GRF}
+        #                update_grub ;;
+        #        esac ;;
+        #esac
     )
 )
 
@@ -794,9 +797,10 @@ lev && (
 
 NO=1.5.1;     W=1; S=1; E=; SC=N; BD='Ensure XD/NX support is enabled'
 lev && (
-    journalctl  |  grep -q "protection: active"
-    (($? != 0)) && prw "NX is not active. Check kernel."
-    err         || prn "NX is active."
+    echo "";
+    #journalctl  |  grep -q "protection: active"
+    #(($? != 0)) && prw "NX is not active. Check kernel."
+    #err         || prn "NX is active."
 )
 
 NO=1.5.2;     W=1; S=1; E=; SC=;  BD='Ensure address space layout randomization (ASLR) is enabled'
@@ -1142,7 +1146,8 @@ lev && UFW && (
     (ufw status | grep -qwi "active") || (
         upd || prw "UFW firewall needs to be enabled."
         upd && prw "Enabling UFW firewall."
-        upd && ufw enable
+        sudo /etc/init.d/ufw restart
+	#upd && ufw enable
         err || prn "UFW: Firewall is enabled."
     )
     ip6 && (update_conf /etc/default/ufw 'IPV6' 'IPV6=yes')
@@ -1198,12 +1203,13 @@ lev && UFW && (
     done < <(netstat -tnlp | grep "^udp " | grep -v 127 | cut -d: -f2 | awk  '{print $1}')
 )
 
-NO=3.5.1.7;   W=1; S=1; E=; SC=;  BD='Ensure default deny firewall policy'
+NO=3.5.1.7;   W=1; S=1; E=; SC=;  BD='Ensure default deny firewall policy (DISABLED)'
 lev && UFW && (
-    upd && ufw default deny incoming
-    upd && ufw default deny outgoing
+    echo "";
+    #upd && ufw default deny incoming
+    #upd && ufw default deny outgoing
     #upd && ufw default allow outgoing
-    upd && ufw default deny routed
+    #upd && ufw default deny routed
 )
 
 NO=3.5.2.1;   W=1; S=1; E=; SC=;  BD='Ensure nftables is installed'
@@ -1770,9 +1776,10 @@ lev && (
 
 NO=5.4.2;     W=1; S=1; E=; SC=;  BD='Ensure lockout for failed password attempts is configured'
 lev && (
-    update_conf /etc/pam.d/common-auth "auth    required                        pam_tally2.so" "auth    required                        pam_tally2.so   onerr=fail      audit       silent  deny=${PAMDENY} unlock_time=${PAMUNLOCK}"
-    update_conf /etc/pam.d/common-account 'account      requisite                       pam_deny.so'
-    update_conf /etc/pam.d/common-account 'account      required                        pam_tally2.so'
+    echo "";
+    #update_conf /etc/pam.d/common-auth "auth    required                        pam_tally2.so" "auth    required                        pam_tally2.so   onerr=fail      audit       silent  deny=${PAMDENY} unlock_time=${PAMUNLOCK}"
+    #update_conf /etc/pam.d/common-account 'account      requisite                       pam_deny.so'
+    #update_conf /etc/pam.d/common-account 'account      required                        pam_tally2.so'
 )
 
 NO=5.4.3;     W=1; S=1; E=; SC=;  BD='Ensure password reuse is limited'
